@@ -12,6 +12,7 @@ import authRoute from './routes/auth.js'
 import templateRoute from './routes/templates.js'
 import categoryRoute from './routes/categories.js'
 import dashboardRoute from './routes/dashboard.js'
+import tempBookingRoute from './routes/tempBookings.js'
 import { handleStripePayment } from './Controllers/stripControllers.js';
 import setupDatabase from './utils/databaseSetup.js';
 import setupCors from './MiddleWares/cors.js';
@@ -526,6 +527,9 @@ app.use('/api/v1/categories', categoryRoute)
 
 //setting route for Dashboard
 app.use('/api/v1/dashboard', dashboardRoute)
+
+//setting route for Temporary Bookings
+app.use('/api/v1/temp-bookings', tempBookingRoute)
 
 
 //starting the server with proper MongoDB connection handling
