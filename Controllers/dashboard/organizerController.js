@@ -5,6 +5,14 @@ import ApiError from '../../utils/ApiError.js';
 import ApiResponse from '../../utils/ApiResponse.js';
 import asyncHandler from '../../utils/asyncHandler.js';
 
+// Metadatos para la interfaz de usuario - estos datos serán usados por el frontend
+const UI_METADATA = {
+    hideHeader: true,
+    hideFooter: true,
+    isDashboard: true,
+    dashboardType: 'organizer'
+};
+
 /**
  * @desc    Get organizer dashboard overview
  * @route   GET /api/v1/dashboard/overview
@@ -98,7 +106,7 @@ export const getOrganizerDashboardOverview = asyncHandler(async (req, res) => {
         
         return res.status(200).json(new ApiResponse(
             200,
-            overviewData,
+            { ...overviewData, ui: UI_METADATA },
             'Dashboard overview data retrieved successfully'
         ));
     } catch (error) {

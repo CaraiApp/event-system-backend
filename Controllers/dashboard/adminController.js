@@ -6,6 +6,14 @@ import ApiResponse from '../../utils/ApiResponse.js';
 import asyncHandler from '../../utils/asyncHandler.js';
 import mongoose from 'mongoose';
 
+// Metadatos para la interfaz de usuario - estos datos serán usados por el frontend
+const UI_METADATA = {
+    hideHeader: true,
+    hideFooter: true,
+    isDashboard: true,
+    dashboardType: 'admin'
+};
+
 /**
  * @desc    Get admin dashboard overview
  * @route   GET /api/v1/admin/dashboard
@@ -107,7 +115,7 @@ export const getAdminDashboardOverview = asyncHandler(async (req, res) => {
         
         return res.status(200).json(new ApiResponse(
             200,
-            dashboardData,
+            { ...dashboardData, ui: UI_METADATA },
             'Admin dashboard data retrieved successfully'
         ));
     } catch (error) {

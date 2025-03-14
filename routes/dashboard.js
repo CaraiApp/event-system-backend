@@ -2,8 +2,30 @@ import express from 'express';
 import { verifyToken, verifyOrganizerOrAdmin, verifyAdmin } from '../MiddleWares/auth.js';
 import organizerController from '../Controllers/dashboard/organizerController.js';
 import adminController from '../Controllers/dashboard/adminController.js';
+import ApiResponse from '../utils/ApiResponse.js';
 
 const router = express.Router();
+
+// Ruta para proporcionar configuración UI al frontend
+router.get('/ui-config', (req, res) => {
+    const route = req.query.route || '';
+    let uiConfig = { hideHeader: false, hideFooter: false };
+    
+    if (route.includes('/admin') || route.includes('/organizer')) {
+        uiConfig = {
+            hideHeader: true,
+            hideFooter: true,
+            isDashboard: true,
+            dashboardType: route.includes('/admin') ? 'admin' : 'organizer'
+        };
+    }
+    
+    return res.status(200).json(new ApiResponse(
+        200,
+        uiConfig,
+        'UI configuration retrieved successfully'
+    ));
+});
 
 // Organizer Dashboard Routes
 router.get('/organizer/overview', verifyToken, verifyOrganizerOrAdmin, organizerController.getOrganizerDashboardOverview);
