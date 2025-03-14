@@ -1,0 +1,24 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+# Solucionamos el conflicto de puertos usando puertos diferentes para cada servicio
+# El health check usa puerto 8080 y la aplicación principal usa 8081
+startCommand = "node setup-environment-for-railway.js && PORT=8080 node health.js & sleep 2 && PORT=8081 MAIN_PORT=8081 node railway.js"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicy = "always"
+
+[phases.pre]
+cmds = ["npm install"]
+
+[environments]
+  [environments.production]
+    numReplicas = 1
+    port = 8080
+    envs = [
+      { key = "NODE_ENV", value = "production" },
+      { key = "PORT", value = "8080" },
+      { key = "MAIN_PORT", value = "8081" },
+      { key = "SKIP_MONGO_WAIT_FOR_HEALTHCHECK", value = "true" }
+    ]

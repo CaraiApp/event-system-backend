@@ -1,0 +1,32 @@
+
+
+# Env files (credenciales sensibles)
+.env
+.config.env
+config.env
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# Directorios de uploads temporales
+/uploads/*
+!/uploads/.gitkeep
+
+# Directorios node
+/node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archivos de sistema
+.DS_Store
+*.log
+.vscode
+.idea
+
+# Archivos temporales
+*.tmp
+*.temp
+*.swp
+
