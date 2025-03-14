@@ -8,7 +8,7 @@ import {
   getTemplatesByUser
 } from '../Controllers/templateController.js';
 import { verifyJWT, verifyAdmin } from '../utils/verifyToken.js';
-import ApiResponse from '../utils/ApiResponse.js';
+import { ApiResponse } from '../utils/ApiResponse.js';
 
 const router = express.Router();
 
