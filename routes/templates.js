@@ -8,6 +8,7 @@ import {
   getTemplatesByUser
 } from '../Controllers/templateController.js';
 import { verifyJWT, verifyAdmin } from '../utils/verifyToken.js';
+import ApiResponse from '../utils/ApiResponse.js';
 
 const router = express.Router();
 
@@ -21,6 +22,22 @@ router.get('/user/:userId', verifyJWT, getTemplatesByUser);
 
 // Ruta para obtener las plantillas del usuario autenticado
 router.get('/myTemplates', verifyJWT, getTemplatesByUser);
+
+// Ruta para obtener configuración UI (necesaria para el frontend)
+router.get('/ui-config', (req, res) => {
+  // Configuración fija para ocultar header y footer
+  const uiConfig = {
+    hideHeader: true,
+    hideFooter: true,
+    isDashboard: true
+  };
+  
+  return res.status(200).json(new ApiResponse(
+    200,
+    uiConfig,
+    'UI configuration retrieved successfully'
+  ));
+});
 
 // Rutas para operaciones específicas sobre una plantilla
 router.route('/:id')
