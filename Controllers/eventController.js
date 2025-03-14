@@ -270,7 +270,8 @@ export const createNewEvent = async (req, res) => {
 };
 
 export const updateEvent = async (req, res) => {
-    const id = req.query.id;
+    // Obtener el ID del evento de query o body
+    const id = req.query.id || req.body.id;
 
     let photo = null;
     let galleryFiles = [];

@@ -27,7 +27,7 @@ router.post('/createEvent', upload.any(), verifyJWT, createNewEvent);
 router.put('/updateEvent', upload.any(), updateEvent);
 router.patch('/publishedEvent', publishEvent);
 router.patch('/featuredEvent', featureEvent);
-router.delete('/publishedEvent', deleteEvent);
+router.delete('/:id', deleteEvent);
 router.get('/getsingleEvent', getSingleEvent);
 router.get('/getuserEvent', verifyJWT, getUserEvents);
 router.get('/walk-in', getWalkInEvents);
