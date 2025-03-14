@@ -2,7 +2,7 @@ import express from 'express';
 import { verifyJWT, verifyAdmin, verifyOrganizer } from '../utils/verifyToken.js';
 import organizerController from '../Controllers/dashboard/organizerController.js';
 import adminController from '../Controllers/dashboard/adminController.js';
-import ApiResponse from '../utils/ApiResponse.js';
+import { ApiResponse } from '../utils/ApiResponse.js';
 
 const router = express.Router();
 

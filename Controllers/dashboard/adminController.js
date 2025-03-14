@@ -1,9 +1,9 @@
 import Event from '../../models/Event.js';
 import Booking from '../../models/Booking.js';
 import User from '../../models/User.js';
-import ApiError from '../../utils/ApiError.js';
-import ApiResponse from '../../utils/ApiResponse.js';
-import asyncHandler from '../../utils/asyncHandler.js';
+import { ApiError } from '../../utils/ApiError.js';
+import { ApiResponse } from '../../utils/ApiResponse.js';
+import { asyncHandler } from '../../utils/asyncHandler.js';
 import mongoose from 'mongoose';
 
 // Metadatos para la interfaz de usuario - estos datos serán usados por el frontend
@@ -196,7 +196,7 @@ export const getUserManagementData = asyncHandler(async (req, res) => {
         };
         
         // Determinar el título de la respuesta según la ruta
-        const isOrganizersPage = req.originalUrl.includes('/admin/organizers');
+        // Ya tenemos isOrganizersPage declarado anteriormente
         const responseMessage = isOrganizersPage 
             ? 'Organizers management data retrieved successfully' 
             : 'User management data retrieved successfully';

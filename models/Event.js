@@ -330,6 +330,11 @@ const eventSchema = new mongoose.Schema(
       type: Boolean, // Si el evento está publicado
       default: false,
     },
+    status: {
+      type: String,
+      enum: ['active', 'draft', 'cancelled', 'finished'],
+      default: 'active',
+    },
   },
   { timestamps: true }
 );

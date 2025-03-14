@@ -1,9 +1,9 @@
 import Event from '../../models/Event.js';
 import Booking from '../../models/Booking.js';
 import User from '../../models/User.js';
-import ApiError from '../../utils/ApiError.js';
-import ApiResponse from '../../utils/ApiResponse.js';
-import asyncHandler from '../../utils/asyncHandler.js';
+import { ApiError } from '../../utils/ApiError.js';
+import { ApiResponse } from '../../utils/ApiResponse.js';
+import { asyncHandler } from '../../utils/asyncHandler.js';
 
 // Metadatos para la interfaz de usuario - estos datos serán usados por el frontend
 const UI_METADATA = {
