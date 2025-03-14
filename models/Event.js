@@ -258,7 +258,7 @@ const eventSchema = new mongoose.Schema(
     ticket: {
       type: String,
       // enum: ['En línea', 'Presencial'], // Opciones de entrada en español
-      enum: ["Online", "Walk-in"], 
+      enum: ["Online", "Walk-in", "Free"], // Añadido "Free" para eventos gratuitos
     },
     subscriptionPlan: {
       type: String,
