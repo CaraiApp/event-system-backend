@@ -107,13 +107,10 @@ export const createFreeBooking = async (req, res) => {
         
         // Generar QR y subirlo a Cloudinary
         const qrCodeBase64 = await QRCode.toDataURL(JSON.stringify(qrCodePayload));
-        const qrCodeUploadResponse = await uploadOnCloudinary(qrCodeBase64, {
-            folder: "event_bookings",
-            public_id: `free_booking_${reservaGuardada._id}`,
-        });
+        const qrCodeUploadResponse = await uploadOnCloudinary(qrCodeBase64, "event_bookings");
         
         // Actualizar la reserva con la URL del QR
-        reservaGuardada.qrCode = qrCodeUploadResponse.secure_url;
+        reservaGuardada.qrCodeUrl = qrCodeUploadResponse.secure_url;
         await reservaGuardada.save();
         
         // Responder con éxito
