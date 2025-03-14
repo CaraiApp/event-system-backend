@@ -48,6 +48,10 @@ router.get('/admin/users', verifyToken, verifyAdmin, adminController.getUserMana
 router.patch('/admin/users/:userId', verifyToken, verifyAdmin, adminController.updateUser);
 router.delete('/admin/users/:userId', verifyToken, verifyAdmin, adminController.deleteUser);
 
+// Ruta específica para gestión de organizadores
+// Usamos el mismo controlador pero la URL se detectará diferente
+router.get('/admin/organizers', verifyToken, verifyAdmin, adminController.getUserManagementData);
+
 // Event Management
 router.get('/admin/events', verifyToken, verifyAdmin, adminController.getEventManagementData);
 router.patch('/admin/events/:eventId/status', verifyToken, verifyAdmin, adminController.updateEventStatus);

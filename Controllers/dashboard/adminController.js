@@ -126,7 +126,7 @@ export const getAdminDashboardOverview = asyncHandler(async (req, res) => {
 
 /**
  * @desc    Get user management data
- * @route   GET /api/v1/admin/users
+ * @route   GET /api/v1/dashboard/admin/users
  * @access  Private (Admin only)
  */
 export const getUserManagementData = asyncHandler(async (req, res) => {
@@ -136,7 +136,14 @@ export const getUserManagementData = asyncHandler(async (req, res) => {
         // Build the filter
         const filter = {};
         
-        if (role) {
+        // Verificar si la solicitud viene de la página de organizadores
+        const isOrganizersPage = req.originalUrl.includes('/admin/organizers');
+        
+        // Si estamos en la página de organizadores, forzar el filtro de rol
+        if (isOrganizersPage) {
+            filter.role = 'organizer';
+            console.log('Detectada ruta de organizadores, filtrando por rol organizador');
+        } else if (role) {
             filter.role = role;
         }
         
@@ -148,7 +155,8 @@ export const getUserManagementData = asyncHandler(async (req, res) => {
             filter.$or = [
                 { username: { $regex: search, $options: 'i' } },
                 { email: { $regex: search, $options: 'i' } },
-                { fullname: { $regex: search, $options: 'i' } }
+                { fullname: { $regex: search, $options: 'i' } },
+                { companyName: { $regex: search, $options: 'i' } }
             ];
         }
         
@@ -187,13 +195,20 @@ export const getUserManagementData = asyncHandler(async (req, res) => {
             totalUsers
         };
         
+        // Determinar el título de la respuesta según la ruta
+        const isOrganizersPage = req.originalUrl.includes('/admin/organizers');
+        const responseMessage = isOrganizersPage 
+            ? 'Organizers management data retrieved successfully' 
+            : 'User management data retrieved successfully';
+            
         return res.status(200).json(new ApiResponse(
             200,
             {
                 users: formattedUsers,
-                ...paginationData
+                ...paginationData,
+                ui: UI_METADATA
             },
-            'User management data retrieved successfully'
+            responseMessage
         ));
     } catch (error) {
         console.error('Error fetching users:', error);
