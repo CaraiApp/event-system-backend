@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyToken, verifyOrganizerOrAdmin, verifyAdmin } from '../MiddleWares/auth.js';
+import { verifyJWT, verifyAdmin, verifyOrganizer } from '../utils/verifyToken.js';
 import organizerController from '../Controllers/dashboard/organizerController.js';
 import adminController from '../Controllers/dashboard/adminController.js';
 import ApiResponse from '../utils/ApiResponse.js';
@@ -28,50 +28,50 @@ router.get('/ui-config', (req, res) => {
 });
 
 // Organizer Dashboard Routes
-router.get('/organizer/overview', verifyToken, verifyOrganizerOrAdmin, organizerController.getOrganizerDashboardOverview);
-router.get('/organizer/event-analytics/:eventId', verifyToken, verifyOrganizerOrAdmin, organizerController.getEventAnalytics);
-router.get('/organizer/financial-overview', verifyToken, verifyOrganizerOrAdmin, organizerController.getFinancialOverview);
-router.get('/organizer/attendees', verifyToken, verifyOrganizerOrAdmin, organizerController.getAttendeesData);
-router.patch('/organizer/attendees/:bookingId/check-in', verifyToken, verifyOrganizerOrAdmin, organizerController.updateAttendeeCheckIn);
-router.get('/organizer/attendees/export', verifyToken, verifyOrganizerOrAdmin, organizerController.exportAttendeesList);
+router.get('/organizer/overview', verifyJWT, verifyOrganizer, organizerController.getOrganizerDashboardOverview);
+router.get('/organizer/event-analytics/:eventId', verifyJWT, verifyOrganizer, organizerController.getEventAnalytics);
+router.get('/organizer/financial-overview', verifyJWT, verifyOrganizer, organizerController.getFinancialOverview);
+router.get('/organizer/attendees', verifyJWT, verifyOrganizer, organizerController.getAttendeesData);
+router.patch('/organizer/attendees/:bookingId/check-in', verifyJWT, verifyOrganizer, organizerController.updateAttendeeCheckIn);
+router.get('/organizer/attendees/export', verifyJWT, verifyOrganizer, organizerController.exportAttendeesList);
 
 // New enhanced organizer dashboard routes
-router.get('/organizer/sales-report', verifyToken, verifyOrganizerOrAdmin, organizerController.getSalesReport);
-router.get('/organizer/commissions', verifyToken, verifyOrganizerOrAdmin, organizerController.getCommissionDetails);
-router.get('/organizer/occupancy', verifyToken, verifyOrganizerOrAdmin, organizerController.getOccupancyAnalytics);
+router.get('/organizer/sales-report', verifyJWT, verifyOrganizer, organizerController.getSalesReport);
+router.get('/organizer/commissions', verifyJWT, verifyOrganizer, organizerController.getCommissionDetails);
+router.get('/organizer/occupancy', verifyJWT, verifyOrganizer, organizerController.getOccupancyAnalytics);
 
 // Admin Dashboard Routes
-router.get('/admin/overview', verifyToken, verifyAdmin, adminController.getAdminDashboardOverview);
+router.get('/admin/overview', verifyJWT, verifyAdmin, adminController.getAdminDashboardOverview);
 
 // User Management
-router.get('/admin/users', verifyToken, verifyAdmin, adminController.getUserManagementData);
-router.patch('/admin/users/:userId', verifyToken, verifyAdmin, adminController.updateUser);
-router.delete('/admin/users/:userId', verifyToken, verifyAdmin, adminController.deleteUser);
+router.get('/admin/users', verifyJWT, verifyAdmin, adminController.getUserManagementData);
+router.patch('/admin/users/:userId', verifyJWT, verifyAdmin, adminController.updateUser);
+router.delete('/admin/users/:userId', verifyJWT, verifyAdmin, adminController.deleteUser);
 
 // Ruta específica para gestión de organizadores
 // Usamos el mismo controlador pero la URL se detectará diferente
-router.get('/admin/organizers', verifyToken, verifyAdmin, adminController.getUserManagementData);
+router.get('/admin/organizers', verifyJWT, verifyAdmin, adminController.getUserManagementData);
 
 // Event Management
-router.get('/admin/events', verifyToken, verifyAdmin, adminController.getEventManagementData);
-router.patch('/admin/events/:eventId/status', verifyToken, verifyAdmin, adminController.updateEventStatus);
-router.patch('/admin/events/:eventId/featured', verifyToken, verifyAdmin, adminController.toggleEventFeatured);
-router.delete('/admin/events/:eventId', verifyToken, verifyAdmin, adminController.deleteEvent);
+router.get('/admin/events', verifyJWT, verifyAdmin, adminController.getEventManagementData);
+router.patch('/admin/events/:eventId/status', verifyJWT, verifyAdmin, adminController.updateEventStatus);
+router.patch('/admin/events/:eventId/featured', verifyJWT, verifyAdmin, adminController.toggleEventFeatured);
+router.delete('/admin/events/:eventId', verifyJWT, verifyAdmin, adminController.deleteEvent);
 
 // Category Management
-router.get('/admin/categories', verifyToken, verifyAdmin, adminController.getCategoryManagementData);
+router.get('/admin/categories', verifyJWT, verifyAdmin, adminController.getCategoryManagementData);
 
 // Reports and Analytics
-router.get('/admin/reports', verifyToken, verifyAdmin, adminController.getSystemReports);
-router.get('/admin/activity-log', verifyToken, verifyAdmin, adminController.getActivityLog);
-router.get('/admin/performance', verifyToken, verifyAdmin, adminController.getSystemPerformance);
+router.get('/admin/reports', verifyJWT, verifyAdmin, adminController.getSystemReports);
+router.get('/admin/activity-log', verifyJWT, verifyAdmin, adminController.getActivityLog);
+router.get('/admin/performance', verifyJWT, verifyAdmin, adminController.getSystemPerformance);
 
 // Communications with Organizers
-router.get('/admin/communications', verifyToken, verifyAdmin, adminController.getCommunicationHistory);
-router.post('/admin/communications', verifyToken, verifyAdmin, adminController.sendCommunication);
+router.get('/admin/communications', verifyJWT, verifyAdmin, adminController.getCommunicationHistory);
+router.post('/admin/communications', verifyJWT, verifyAdmin, adminController.sendCommunication);
 
 // System Settings
-router.get('/admin/settings', verifyToken, verifyAdmin, adminController.getSystemSettings);
-router.put('/admin/settings', verifyToken, verifyAdmin, adminController.updateSystemSettings);
+router.get('/admin/settings', verifyJWT, verifyAdmin, adminController.getSystemSettings);
+router.put('/admin/settings', verifyJWT, verifyAdmin, adminController.updateSystemSettings);
 
 export default router;
