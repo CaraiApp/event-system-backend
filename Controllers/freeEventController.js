@@ -16,7 +16,7 @@ const encrypt = (data, secretKey) => {
 
 /**
  * Controlador para crear reservas de eventos gratuitos
- * Salta el proceso de Stripe y genera directamente el código QR
+ * Salta el proceso de Stripe y genera directamente el cÃ³digo QR
  */
 export const createFreeBooking = async (req, res) => {
     const { bookingDate, event_id, user_id, guestSize, seatNumbers } = req.body;
@@ -41,7 +41,7 @@ export const createFreeBooking = async (req, res) => {
             });
         }
         
-        // Verificar conflictos de asientos si se están asignando
+        // Verificar conflictos de asientos si se estÃ¡n asignando
         if (seatNumbers && seatNumbers.length > 0) {
             const conflictingSeats = await Booking.find({
                 event_id,
@@ -53,7 +53,7 @@ export const createFreeBooking = async (req, res) => {
                 return res.status(400).json({
                     status: "failed",
                     success: "false",
-                    message: "Algunos de los asientos seleccionados ya están reservados",
+                    message: "Algunos de los asientos seleccionados ya estÃ¡n reservados",
                     conflictingSeats: conflictingSeats.map(booking => booking.seatNumbers).flat(),
                 });
             }
@@ -80,12 +80,12 @@ export const createFreeBooking = async (req, res) => {
             await evento.save();
         }
         
-        // Obtener detalles para la respuesta y generación del QR
+        // Obtener detalles para la respuesta y generaciÃ³n del QR
         const reservaPoblada = await Booking.findById(reservaGuardada._id)
             .populate('user_id', 'username email')
             .populate('event_id', 'name desc venue');
             
-        // Generar datos para el código QR
+        // Generar datos para el cÃ³digo QR
         const secretKey = process.env.QR_SECRET_KEY || 'defaultSecretKey0123456789abcdef'; // Fallback
         const qrCodeData = JSON.stringify({
             bookingId: reservaGuardada._id,
@@ -99,9 +99,9 @@ export const createFreeBooking = async (req, res) => {
         // Encriptar los datos
         const encryptedData = encrypt(qrCodeData, secretKey);
         
-        // Añadir mensaje para el caso de QR no válido
+        // AÃ±adir mensaje para el caso de QR no vÃ¡lido
         const qrCodePayload = {
-            errorMessage: "Código QR inválido. Por favor contacte al organizador del evento.",
+            errorMessage: "CÃ³digo QR invÃ¡lido. Por favor contacte al organizador del evento.",
             data: encryptedData,
         };
         
@@ -116,7 +116,7 @@ export const createFreeBooking = async (req, res) => {
         reservaGuardada.qrCode = qrCodeUploadResponse.secure_url;
         await reservaGuardada.save();
         
-        // Responder con éxito
+        // Responder con Ã©xito
         res.status(200).json({
             status: "success",
             success: "true",
