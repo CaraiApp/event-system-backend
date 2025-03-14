@@ -10,6 +10,7 @@ import {
     updateBooking 
 } from "../Controllers/bookingController.js";
 import { handleStripePayment } from '../Controllers/stripControllers.js';
+import { createFreeBooking } from "../Controllers/freeEventController.js";
 
 const router = express.Router();
 
@@ -29,6 +30,9 @@ router.delete('/:id', verifyJWT, verifyAdmin, deleteBooking);
 router.post('/create-stripe-session', verifyJWT, handleStripePayment.createStripeSession);
 router.get('/session/:sessionId', verifyJWT, handleStripePayment.getSessionBookingDetails);
 router.post('/scan-qr', verifyJWT, verifyOrganizer, handleStripePayment.scanQRCode);
+
+// Ruta para eventos gratuitos
+router.post('/free', verifyJWT, createFreeBooking);
 
 // Rutas existentes que se mantienen por compatibilidad
 router.get('/sessionBookingDetails', verifyJWT, handleStripePayment.getSessionBookingDetails);
