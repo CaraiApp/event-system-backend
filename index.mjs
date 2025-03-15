@@ -121,40 +121,10 @@ app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ limit: '50mb', extended: true }))
 app.use(cookieParser())
 
-// Handle preflight OPTIONS requests 
+// Middleware para logging simple, sin modificar CORS (ya lo hace setupCors)
 app.use((req, res, next) => {
     // Log incoming requests for debugging
     console.log(`Request: ${req.method} ${req.originalUrl} from ${req.ip}`);
-    
-    // Para ser redundante y asegurar que CORS funciona, configuramos cabeceras en todas las solicitudes
-    const allowedOrigins = [
-        'http://localhost:3000',
-        'http://localhost:5173',
-        'https://event-system-frontend-web.vercel.app',
-        'https://event-system-frontend-web-main.vercel.app',
-        'https://entradasmelilla.vercel.app',
-        'https://v2.entradasmelilla.com',
-        'https://www.entradasmelilla.com',
-        'https://entradasmelilla.com',
-        'http://v2.entradasmelilla.com',
-        'http://entradasmelilla.com',
-        'https://demoticket.inasnapmarketing.ai'
-    ];
-    
-    const origin = req.headers.origin;
-    if (origin && allowedOrigins.includes(origin)) {
-        res.header('Access-Control-Allow-Origin', origin);
-        res.header('Access-Control-Allow-Credentials', 'true');
-    } else {
-        res.header('Access-Control-Allow-Origin', '*');
-    }
-    
-    if (req.method === 'OPTIONS') {
-        console.log('Handling OPTIONS request for CORS preflight');
-        res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE');
-        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
-        return res.status(200).json({});
-    }
     next();
 })
 
