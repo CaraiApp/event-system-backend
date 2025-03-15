@@ -81,6 +81,30 @@ router.delete('/admin/users/:userId', verifyJWT, verifyAdmin, adminController.de
 // Ruta específica para gestión de organizadores
 router.get('/admin/organizers', verifyJWT, verifyAdmin, adminController.getUserManagementData);
 
+// Endpoint para configuración UI del dashboard
+router.get('/ui-config', (req, res) => {
+  // Configuración base del UI
+  const baseConfig = {
+    hideHeader: true,
+    hideFooter: true,
+    isDashboard: true,
+    dashboardType: 'admin',
+    navItems: [
+      { path: '/admin/overview', label: 'Panel de Control', icon: 'dashboard' },
+      { path: '/admin/users', label: 'Usuarios', icon: 'people' },
+      { path: '/admin/organizers', label: 'Organizadores', icon: 'business' },
+      { path: '/admin/events', label: 'Eventos', icon: 'event' },
+      { path: '/admin/settings', label: 'Configuración', icon: 'settings' }
+    ]
+  };
+  
+  return res.status(200).json({
+    success: true,
+    data: baseConfig,
+    message: 'UI configuration retrieved successfully'
+  });
+});
+
 // Event Management - Todas protegidas
 router.get('/admin/events', verifyJWT, verifyAdmin, adminController.getEventManagementData);
 router.patch('/admin/events/:eventId/status', verifyJWT, verifyAdmin, adminController.updateEventStatus);
