@@ -875,65 +875,16 @@ import SystemSettings from '../../models/SystemSettings.js';
 import emailService from '../../utils/emailService.js';
 
 /**
- * Get public and non-sensitive system settings
- * This is a helper function used for public access
- */
-const getPublicSystemSettings = async () => {
-    // Get settings from the database, or create default if needed
-    const settings = await SystemSettings.getSettings();
-    
-    // Create a public version with only non-sensitive settings
-    const publicSettings = {
-        general: {
-            siteName: settings.general?.siteName || 'EntradasMelilla',
-            siteDescription: settings.general?.siteDescription || 'Compra tus entradas para los mejores eventos de Melilla',
-            contactEmail: settings.general?.contactEmail || 'info@entradasmelilla.com',
-            defaultLanguage: settings.general?.defaultLanguage || 'es',
-            timeZone: settings.general?.timeZone || 'Europe/Madrid'
-        },
-        payment: {
-            currency: settings.payment?.currency || 'EUR',
-            currencySymbol: settings.payment?.currencySymbol || '€',
-            stripeEnabled: settings.payment?.stripeEnabled || true,
-            paypalEnabled: settings.payment?.paypalEnabled || false,
-            bankTransferEnabled: settings.payment?.bankTransferEnabled || true
-        },
-        events: {
-            maxTicketsPerPurchase: settings.events?.maxTicketsPerPurchase || 10,
-            minTicketsPerPurchase: settings.events?.minTicketsPerPurchase || 1,
-            requirePhoneNumber: settings.events?.requirePhoneNumber || true
-        }
-    };
-    
-    return publicSettings;
-};
-
-/**
  * @desc    Get system settings
  * @route   GET /api/v1/admin/settings
- * @access  Mixed (Public minimal config, Admin full config)
+ * @access  Private (Admin only)
  */
 export const getSystemSettings = asyncHandler(async (req, res) => {
     try {
         console.log("Accediendo a configuración del sistema");
+        console.log("Usuario autenticado:", req.user ? req.user.username : "Sin usuario");
         
-        // Determinar si es una solicitud autenticada (admin)
-        const isAdmin = req.user && req.user.role === 'admin';
-        console.log("¿Solicitud autenticada como admin?", isAdmin);
-        
-        // Si no es admin, devolver solo la configuración pública
-        if (!isAdmin) {
-            console.log("Solicitud no autenticada, enviando configuración pública limitada");
-            const publicConfig = await getPublicSystemSettings();
-            
-            return res.status(200).json(new ApiResponse(
-                200,
-                publicConfig,
-                'Public system configuration retrieved successfully'
-            ));
-        }
-        
-        // A partir de aquí, solo admin tiene acceso a la configuración completa
+        // Admin ya está verificado por middleware, solo los administradores llegan aquí
         
         // Get settings from the database, or create default if needed
         const settings = await SystemSettings.getSettings();
@@ -956,6 +907,8 @@ export const getSystemSettings = asyncHandler(async (req, res) => {
         if (maskedSettings.email && maskedSettings.email.apiSettings) {
             maskedSettings.email.apiSettings.apiKey = maskedSettings.email.apiSettings.apiKey ? '**********' : '';
         }
+        
+        console.log("Enviando configuración del sistema a admin:", req.user.username);
         
         return res.status(200).json(new ApiResponse(
             200,
@@ -1059,51 +1012,12 @@ export const updateSystemSettings = asyncHandler(async (req, res) => {
  * @route   GET /api/v1/admin/settings/email
  * @access  Private (Admin only)
  */
-/**
- * Get public and non-sensitive email configuration
- * This is a helper function used both for authenticated and public access
- */
-const getPublicEmailConfig = async () => {
-    // Get settings from the database, or create default if needed
-    const settings = await SystemSettings.getSettings();
-    
-    // Create a minimal public version with only non-sensitive data
-    const publicEmailConfig = {
-        fromName: settings.email?.fromName || process.env.EMAIL_SENDER_NAME || 'EntradasMelilla',
-        fromEmail: settings.email?.fromEmail || process.env.EMAIL_FROM || 'info@entradasmelilla.com',
-        emailProvider: settings.email?.emailProvider || 'smtp',
-        // No templates, credentials, or sensitive information here
-    };
-    
-    return publicEmailConfig;
-};
-
-/**
- * @desc    Get email settings
- * @route   GET /api/v1/admin/settings/email
- * @access  Mixed (Public minimal config, Admin full config)
- */
 export const getEmailSettings = asyncHandler(async (req, res) => {
     try {
         console.log("Accediendo a configuración de correo electrónico");
+        console.log("Usuario autenticado:", req.user ? req.user.username : "Sin usuario");
         
-        // Determinar si es una solicitud autenticada (admin)
-        const isAdmin = req.user && req.user.role === 'admin';
-        console.log("¿Solicitud autenticada como admin?", isAdmin);
-        
-        // Si no es admin, devolver solo la configuración pública
-        if (!isAdmin) {
-            console.log("Solicitud no autenticada, enviando configuración pública limitada");
-            const publicConfig = await getPublicEmailConfig();
-            
-            return res.status(200).json(new ApiResponse(
-                200,
-                publicConfig,
-                'Public email configuration retrieved successfully'
-            ));
-        }
-        
-        // A partir de aquí, solo admin tiene acceso
+        // Admin ya está verificado por middleware, solo los administradores llegan aquí
         
         // Get settings from the database, or create default if needed
         const settings = await SystemSettings.getSettings();
@@ -1163,7 +1077,7 @@ export const getEmailSettings = asyncHandler(async (req, res) => {
             maskedSettings.apiSettings.apiKey = maskedSettings.apiSettings.apiKey ? '**********' : '';
         }
         
-        console.log("Devolviendo configuración de correo completa para admin");
+        console.log("Devolviendo configuración de correo a admin:", req.user.username);
         
         return res.status(200).json(new ApiResponse(
             200,
