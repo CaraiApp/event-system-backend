@@ -539,8 +539,9 @@ app.get('/api/templates/ui-config', (req, res) => {
     });
 });
 
-//setting route for Categories
+//setting route for Categories (con y sin v1 para compatibilidad)
 app.use('/api/v1/categories', categoryRoute)
+app.use('/api/categories', categoryRoute) // Ruta adicional para compatibilidad con el frontend
 
 //setting route for Dashboard
 app.use('/api/v1/dashboard', dashboardRoute)
