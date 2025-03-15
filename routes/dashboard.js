@@ -83,6 +83,8 @@ router.get('/admin/organizers', verifyJWT, verifyAdmin, adminController.getUserM
 
 // Endpoint para configuración UI del dashboard
 router.get('/ui-config', (req, res) => {
+  console.log('Solicitud recibida en /api/v1/dashboard/ui-config', { query: req.query });
+  
   // Configuración base del UI
   const baseConfig = {
     hideHeader: true,
@@ -98,10 +100,47 @@ router.get('/ui-config', (req, res) => {
     ]
   };
   
+  // Asegurarnos de enviar una respuesta que coincida con lo que espera el frontend
   return res.status(200).json({
     success: true,
     data: baseConfig,
     message: 'UI configuration retrieved successfully'
+  });
+});
+
+// Agregar un endpoint adicional sin ruta anidada para mayor compatibilidad
+router.get('/', (req, res) => {
+  console.log('Ruta base de dashboard accedida');
+  
+  // Verificar si la solicitud es para ui-config a través de query params
+  if (req.query && req.query.config === 'ui') {
+    console.log('Solicitud de UI config detectada en la ruta base');
+    
+    const baseConfig = {
+      hideHeader: true,
+      hideFooter: true,
+      isDashboard: true,
+      dashboardType: 'admin',
+      navItems: [
+        { path: '/admin/overview', label: 'Panel de Control', icon: 'dashboard' },
+        { path: '/admin/users', label: 'Usuarios', icon: 'people' },
+        { path: '/admin/organizers', label: 'Organizadores', icon: 'business' },
+        { path: '/admin/events', label: 'Eventos', icon: 'event' },
+        { path: '/admin/settings', label: 'Configuración', icon: 'settings' }
+      ]
+    };
+    
+    return res.status(200).json({
+      success: true,
+      data: baseConfig,
+      message: 'UI configuration retrieved successfully'
+    });
+  }
+  
+  // Respuesta normal para la ruta base
+  return res.status(200).json({
+    success: true,
+    message: 'Dashboard API is working'
   });
 });
 
