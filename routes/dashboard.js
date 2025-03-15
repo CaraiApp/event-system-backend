@@ -8,7 +8,7 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
-// Ruta para proporcionar configuración UI al frontend
+// Ruta pública para proporcionar configuración UI al frontend
 router.get('/ui-config', (req, res) => {
     const route = req.query.route || '';
     let uiConfig = { hideHeader: false, hideFooter: false };
@@ -20,7 +20,30 @@ router.get('/ui-config', (req, res) => {
             isDashboard: true,
             dashboardType: route.includes('/admin') ? 'admin' : 'organizer'
         };
+        
+        // Agregamos información adicional útil para dashboards
+        if (route.includes('/admin')) {
+            uiConfig.navItems = [
+                { path: '/admin/overview', label: 'Dashboard', icon: 'dashboard' },
+                { path: '/admin/users', label: 'Usuarios', icon: 'people' },
+                { path: '/admin/organizers', label: 'Organizadores', icon: 'business' },
+                { path: '/admin/events', label: 'Eventos', icon: 'event' },
+                { path: '/admin/categories', label: 'Categorías', icon: 'category' },
+                { path: '/admin/reports', label: 'Informes', icon: 'bar_chart' },
+                { path: '/admin/settings', label: 'Configuración', icon: 'settings' }
+            ];
+        } else if (route.includes('/organizer')) {
+            uiConfig.navItems = [
+                { path: '/organizer/overview', label: 'Dashboard', icon: 'dashboard' },
+                { path: '/organizer/events', label: 'Mis Eventos', icon: 'event' },
+                { path: '/organizer/sales', label: 'Ventas', icon: 'payments' },
+                { path: '/organizer/attendees', label: 'Asistentes', icon: 'people' },
+                { path: '/organizer/settings', label: 'Configuración', icon: 'settings' }
+            ];
+        }
     }
+    
+    console.log(`Enviando configuración UI para ruta: ${route}`, uiConfig);
     
     return res.status(200).json(new ApiResponse(
         200,
@@ -73,7 +96,7 @@ router.get('/admin/communications', verifyJWT, verifyAdmin, adminController.getC
 router.post('/admin/communications', verifyJWT, verifyAdmin, adminController.sendCommunication);
 
 // System Settings
-router.get('/admin/settings', verifyJWT, verifyAdmin, adminController.getSystemSettings);
+router.get('/admin/settings', optionalJWTMiddleware, adminController.getSystemSettings);
 router.put('/admin/settings', verifyJWT, verifyAdmin, adminController.updateSystemSettings);
 
 // Email Settings - Middleware opcional

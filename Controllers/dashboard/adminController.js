@@ -875,12 +875,66 @@ import SystemSettings from '../../models/SystemSettings.js';
 import emailService from '../../utils/emailService.js';
 
 /**
+ * Get public and non-sensitive system settings
+ * This is a helper function used for public access
+ */
+const getPublicSystemSettings = async () => {
+    // Get settings from the database, or create default if needed
+    const settings = await SystemSettings.getSettings();
+    
+    // Create a public version with only non-sensitive settings
+    const publicSettings = {
+        general: {
+            siteName: settings.general?.siteName || 'EntradasMelilla',
+            siteDescription: settings.general?.siteDescription || 'Compra tus entradas para los mejores eventos de Melilla',
+            contactEmail: settings.general?.contactEmail || 'info@entradasmelilla.com',
+            defaultLanguage: settings.general?.defaultLanguage || 'es',
+            timeZone: settings.general?.timeZone || 'Europe/Madrid'
+        },
+        payment: {
+            currency: settings.payment?.currency || 'EUR',
+            currencySymbol: settings.payment?.currencySymbol || '€',
+            stripeEnabled: settings.payment?.stripeEnabled || true,
+            paypalEnabled: settings.payment?.paypalEnabled || false,
+            bankTransferEnabled: settings.payment?.bankTransferEnabled || true
+        },
+        events: {
+            maxTicketsPerPurchase: settings.events?.maxTicketsPerPurchase || 10,
+            minTicketsPerPurchase: settings.events?.minTicketsPerPurchase || 1,
+            requirePhoneNumber: settings.events?.requirePhoneNumber || true
+        }
+    };
+    
+    return publicSettings;
+};
+
+/**
  * @desc    Get system settings
  * @route   GET /api/v1/admin/settings
- * @access  Private (Admin only)
+ * @access  Mixed (Public minimal config, Admin full config)
  */
 export const getSystemSettings = asyncHandler(async (req, res) => {
     try {
+        console.log("Accediendo a configuración del sistema");
+        
+        // Determinar si es una solicitud autenticada (admin)
+        const isAdmin = req.user && req.user.role === 'admin';
+        console.log("¿Solicitud autenticada como admin?", isAdmin);
+        
+        // Si no es admin, devolver solo la configuración pública
+        if (!isAdmin) {
+            console.log("Solicitud no autenticada, enviando configuración pública limitada");
+            const publicConfig = await getPublicSystemSettings();
+            
+            return res.status(200).json(new ApiResponse(
+                200,
+                publicConfig,
+                'Public system configuration retrieved successfully'
+            ));
+        }
+        
+        // A partir de aquí, solo admin tiene acceso a la configuración completa
+        
         // Get settings from the database, or create default if needed
         const settings = await SystemSettings.getSettings();
         
@@ -910,7 +964,7 @@ export const getSystemSettings = asyncHandler(async (req, res) => {
         ));
     } catch (error) {
         console.error('Error fetching system settings:', error);
-        throw new ApiError(500, 'Failed to retrieve system settings');
+        throw new ApiError(500, 'Failed to retrieve system settings: ' + error.message);
     }
 });
 

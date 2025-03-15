@@ -522,6 +522,50 @@ app.use('/api/v1/timeslot', timeslotRoute)
 app.use('/api/v1/templates', templateRoute)
 app.use('/api/templates', templateRoute) // Ruta adicional para compatibilidad con el frontend
 
+// Ruta adicional para configuración UI (alternativa)
+app.get('/api/templates/ui-config', (req, res) => {
+    const route = req.query.route || '';
+    let uiConfig = { hideHeader: false, hideFooter: false };
+    
+    if (route.includes('/admin') || route.includes('/organizer')) {
+        uiConfig = {
+            hideHeader: true,
+            hideFooter: true,
+            isDashboard: true,
+            dashboardType: route.includes('/admin') ? 'admin' : 'organizer'
+        };
+        
+        // Agregamos información adicional útil para dashboards
+        if (route.includes('/admin')) {
+            uiConfig.navItems = [
+                { path: '/admin/overview', label: 'Dashboard', icon: 'dashboard' },
+                { path: '/admin/users', label: 'Usuarios', icon: 'people' },
+                { path: '/admin/organizers', label: 'Organizadores', icon: 'business' },
+                { path: '/admin/events', label: 'Eventos', icon: 'event' },
+                { path: '/admin/categories', label: 'Categorías', icon: 'category' },
+                { path: '/admin/reports', label: 'Informes', icon: 'bar_chart' },
+                { path: '/admin/settings', label: 'Configuración', icon: 'settings' }
+            ];
+        } else if (route.includes('/organizer')) {
+            uiConfig.navItems = [
+                { path: '/organizer/overview', label: 'Dashboard', icon: 'dashboard' },
+                { path: '/organizer/events', label: 'Mis Eventos', icon: 'event' },
+                { path: '/organizer/sales', label: 'Ventas', icon: 'payments' },
+                { path: '/organizer/attendees', label: 'Asistentes', icon: 'people' },
+                { path: '/organizer/settings', label: 'Configuración', icon: 'settings' }
+            ];
+        }
+    }
+    
+    console.log(`[Ruta alternativa] Enviando configuración UI para ruta: ${route}`, uiConfig);
+    
+    return res.status(200).json({
+        success: true,
+        data: uiConfig,
+        message: 'UI configuration retrieved successfully'
+    });
+});
+
 //setting route for Categories
 app.use('/api/v1/categories', categoryRoute)
 
