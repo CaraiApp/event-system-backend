@@ -10,7 +10,9 @@ import bookingRoute from './routes/bookings.js';
 import timeslotRoute from './routes/timeslots.js';
 import authRoute from './routes/auth.js';
 import templateRoute from './routes/templates.js';
+import schedulerRoute from './routes/scheduler.js';
 import { handleStripePayment } from './Controllers/stripControllers.js';
+import { initScheduledTasks } from './utils/scheduledTasks.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -1041,6 +1043,7 @@ app.use('/api/v1/booking', bookingRoute);
 app.use('/api/v1/timeslot', timeslotRoute);
 app.use('/api/v1/templates', templateRoute); // Ruta principal para templates
 app.use('/api/templates', templateRoute); // Ruta adicional para compatibilidad
+app.use('/api/v1/scheduler', schedulerRoute); // Rutas para gestionar tareas programadas
 
 // Keep-alive endpoint to prevent sleep
 setInterval(() => {
@@ -1056,6 +1059,15 @@ const server = app.listen(portNo, async () => {
     console.log('📚 Environment: ' + (process.env.NODE_ENV || 'development'));
     console.log('🛣️ Reset password path will be handled at: /restablecer-password/:token');
     console.log('🔄 Express trust proxy setting: ' + (app.get('trust proxy') ? 'enabled' : 'disabled'));
+    
+    // Inicializar tareas programadas
+    console.log('⏱️ Inicializando sistema de tareas programadas...');
+    try {
+        initScheduledTasks();
+        console.log('✅ Sistema de tareas programadas inicializado correctamente');
+    } catch (error) {
+        console.error('❌ Error al inicializar sistema de tareas programadas:', error);
+    }
     
     // Registrar todas las rutas configuradas para diagnóstico
     console.log('📋 Registered routes:');

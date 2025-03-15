@@ -255,6 +255,10 @@ export const releaseTempBooking = async (req, res) => {
 
 /**
  * Limpiar reservas temporales expiradas (puede usarse con un cron job)
+ * 
+ * Esta versión tiene dos modos:
+ * 1. Como endpoint HTTP cuando se recibe req y res
+ * 2. Como función interna cuando se llama sin parámetros
  */
 export const cleanupExpiredBookings = async (req, res) => {
   try {
@@ -263,19 +267,59 @@ export const cleanupExpiredBookings = async (req, res) => {
       expiryTime: { $lte: now }
     });
     
-    return res.status(200).json({
-      status: "success",
-      success: "true",
-      message: `${result.deletedCount} reservas temporales expiradas fueron eliminadas`,
-    });
+    const message = `${result.deletedCount} reservas temporales expiradas fueron eliminadas`;
+    console.log(`[${new Date().toISOString()}] Limpieza automática: ${message}`);
+    
+    // Si se llamó como endpoint HTTP, devolver respuesta
+    if (req && res) {
+      return res.status(200).json({
+        status: "success",
+        success: "true",
+        message: message,
+      });
+    }
+    
+    // Si se llamó desde el programador, retornar el resultado
+    return {
+      success: true,
+      deletedCount: result.deletedCount
+    };
     
   } catch (err) {
-    console.error("Error en cleanupExpiredBookings:", err);
-    res.status(500).json({
-      status: "failed",
-      success: "false",
-      message: "Error al limpiar reservas temporales expiradas",
-      error: err.message,
-    });
+    console.error(`[${new Date().toISOString()}] Error en cleanupExpiredBookings:`, err);
+    
+    // Si se llamó como endpoint HTTP, devolver error
+    if (req && res) {
+      res.status(500).json({
+        status: "failed",
+        success: "false",
+        message: "Error al limpiar reservas temporales expiradas",
+        error: err.message,
+      });
+    }
+    
+    // Si se llamó desde el programador, retornar el error
+    return {
+      success: false,
+      error: err.message
+    };
   }
+};
+
+/**
+ * Ejecuta la limpieza de reservas expiradas y registra estadísticas
+ * Esta función es para uso interno del programador
+ */
+export const executeCleanupWithStats = async () => {
+  const startTime = Date.now();
+  const result = await cleanupExpiredBookings();
+  const duration = Date.now() - startTime;
+  
+  if (result.success) {
+    console.log(`[${new Date().toISOString()}] Limpieza completada en ${duration}ms. Eliminadas: ${result.deletedCount} reservas.`);
+  } else {
+    console.error(`[${new Date().toISOString()}] Error en limpieza programada: ${result.error}`);
+  }
+  
+  return result;
 };
