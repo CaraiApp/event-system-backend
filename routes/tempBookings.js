@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyToken } from '../MiddleWares/auth.js';
+import { verifyToken } from '../utils/verifyToken.js';
 import { 
   createTempBooking, 
   getTempBookedSeats, 
