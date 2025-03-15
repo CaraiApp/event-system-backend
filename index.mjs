@@ -543,6 +543,15 @@ app.get('/api/templates/ui-config', (req, res) => {
 app.use('/api/v1/categories', categoryRoute)
 app.use('/api/categories', categoryRoute) // Ruta adicional para compatibilidad con el frontend
 
+// Ruta para verificar disponibilidad (para debugging)
+app.get('/api/categories/test', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Endpoint de categorías disponible',
+    timestamp: new Date().toISOString()
+  });
+});
+
 //setting route for Dashboard
 app.use('/api/v1/dashboard', dashboardRoute)
 

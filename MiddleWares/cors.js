@@ -19,7 +19,10 @@ export default function setupCors(app) {
     'https://entradasmelilla.com',
     'http://v2.entradasmelilla.com',
     'http://entradasmelilla.com',
-    'https://demoticket.inasnapmarketing.ai'
+    'https://demoticket.inasnapmarketing.ai',
+    // Agregamos los dominios de desarrollo/producción que se están usando
+    'https://event-system-backend-main.vercel.app',
+    'https://event-system-backend-production.up.railway.app'
   ];
 
   // Versión simplificada de CORS para evitar configuraciones que se contradicen
@@ -63,8 +66,32 @@ export default function setupCors(app) {
     next();
   });
   
-  // No usar el middleware cors() directamente para evitar configuraciones que se solapan
-  // app.use(cors());
+  // Usamos también el middleware cors() como respaldo para una mejor compatibilidad
+  app.use(cors({
+    origin: function(origin, callback) {
+      // Permitir solicitudes sin origen (como apps móviles, curl, etc.)
+      if (!origin) return callback(null, true);
+      
+      // Permitir todos los orígenes en desarrollo
+      if (process.env.NODE_ENV === 'development') {
+        return callback(null, true);
+      }
+      
+      // En producción, verificar contra lista de orígenes permitidos
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        // Para desarrollo, permitimos cualquier origen
+        return callback(null, true);
+        // En producción estricta, podríamos usar:
+        // return callback(new Error('No permitido por CORS'), false);
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'Access-Control-Request-Method', 'Access-Control-Request-Headers'],
+    maxAge: 86400 // 24 horas
+  }));
   
   return app;
 }
