@@ -74,4 +74,14 @@ router.post('/admin/communications', verifyJWT, verifyAdmin, adminController.sen
 router.get('/admin/settings', verifyJWT, verifyAdmin, adminController.getSystemSettings);
 router.put('/admin/settings', verifyJWT, verifyAdmin, adminController.updateSystemSettings);
 
+// Email Settings
+router.get('/admin/settings/email', verifyJWT, verifyAdmin, adminController.getEmailSettings);
+router.put('/admin/settings/email', verifyJWT, verifyAdmin, adminController.updateEmailSettings);
+router.post('/admin/send-test-email', verifyJWT, verifyAdmin, adminController.sendTestEmail);
+
+// Alternative email route for compatibility with frontend
+router.get('/email/config', verifyJWT, verifyAdmin, adminController.getEmailSettings);
+router.put('/email/config', verifyJWT, verifyAdmin, adminController.updateEmailSettings);
+router.post('/email/test', verifyJWT, verifyAdmin, adminController.sendTestEmail);
+
 export default router;

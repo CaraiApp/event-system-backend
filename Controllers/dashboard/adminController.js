@@ -871,6 +871,9 @@ export const getCategoryManagementData = asyncHandler(async (req, res) => {
     }
 });
 
+import SystemSettings from '../../models/SystemSettings.js';
+import emailService from '../../utils/emailService.js';
+
 /**
  * @desc    Get system settings
  * @route   GET /api/v1/admin/settings
@@ -878,108 +881,31 @@ export const getCategoryManagementData = asyncHandler(async (req, res) => {
  */
 export const getSystemSettings = asyncHandler(async (req, res) => {
     try {
-        // Note: In a real app, you would have a dedicated Settings model
-        // For this implementation, we'll use a static object
+        // Get settings from the database, or create default if needed
+        const settings = await SystemSettings.getSettings();
         
-        const settings = {
-            general: {
-                siteName: 'EntradasMelilla',
-                siteDescription: 'Compra tus entradas para los mejores eventos de Melilla',
-                contactEmail: 'info@entradasmelilla.com',
-                supportPhone: '+34 612 345 678',
-                logoUrl: '',
-                faviconUrl: '',
-                defaultLanguage: 'es',
-                timeZone: 'Europe/Madrid',
-                maintenanceMode: false,
-                maintenanceMessage: 'Estamos realizando tareas de mantenimiento. Por favor, vuelve más tarde.'
-            },
-            payment: {
-                currency: 'EUR',
-                currencySymbol: '€',
-                stripeEnabled: true,
-                stripePublicKey: 'pk_test_********************************',
-                stripeSecretKey: 'sk_test_********************************',
-                paypalEnabled: false,
-                paypalClientId: '',
-                paypalClientSecret: '',
-                bankTransferEnabled: true,
-                bankTransferInstructions: 'Realiza la transferencia a la siguiente cuenta bancaria...',
-                commissionRate: 5,
-                commissionType: 'percentage', // percentage | fixed
-                commissionFixed: 0
-            },
-            email: {
-                emailProvider: 'brevo',
-                smtpHost: 'smtp-relay.brevo.com',
-                smtpPort: 587,
-                smtpUser: 'info@entradasmelilla.com',
-                smtpPassword: '********************',
-                smtpEncryption: 'tls',
-                fromName: 'EntradasMelilla',
-                fromEmail: 'info@entradasmelilla.com',
-                emailTemplates: [
-                    { id: 'welcome', name: 'Bienvenida', subject: 'Bienvenido a EntradasMelilla' },
-                    { id: 'booking_confirmation', name: 'Confirmación de Reserva', subject: 'Confirmación de tu reserva' },
-                    { id: 'booking_cancelled', name: 'Reserva Cancelada', subject: 'Tu reserva ha sido cancelada' },
-                    { id: 'payment_confirmation', name: 'Confirmación de Pago', subject: 'Confirmación de pago' },
-                    { id: 'event_reminder', name: 'Recordatorio de Evento', subject: 'Recordatorio: Tu evento se acerca' }
-                ]
-            },
-            events: {
-                maxTicketsPerPurchase: 10,
-                minTicketsPerPurchase: 1,
-                allowGuestCheckout: true,
-                requirePhoneNumber: true,
-                requireAddress: false,
-                enableWaitlist: true,
-                enableRefunds: true,
-                refundPeriodDays: 7,
-                enablePartialRefunds: false,
-                defaultEventDuration: 120, // minutes
-                defaultTicketTypes: [
-                    { id: 'standard', name: 'Estándar', color: '#2196F3' },
-                    { id: 'vip', name: 'VIP', color: '#F44336' }
-                ]
-            },
-            security: {
-                requireEmailVerification: true,
-                twoFactorAuthEnabled: false,
-                passwordMinLength: 8,
-                passwordRequireSpecialChars: true,
-                passwordRequireNumbers: true,
-                passwordRequireUppercase: true,
-                accountLockoutAttempts: 5,
-                sessionTimeout: 60, // minutes
-                jwtExpirationTime: 24, // hours
-                allowedOrigins: ['https://entradasmelilla.com', 'https://admin.entradasmelilla.com']
-            },
-            privacy: {
-                privacyPolicyUrl: 'https://entradasmelilla.com/privacy',
-                termsOfServiceUrl: 'https://entradasmelilla.com/terms',
-                cookiePolicyUrl: 'https://entradasmelilla.com/cookies',
-                dataDeletionPeriod: 365, // days
-                gdprCompliant: true,
-                cookieConsentRequired: true,
-                analyticsEnabled: true,
-                analyticsProvider: 'google',
-                analyticsTrackingId: 'G-XXXXXXXXXX'
-            },
-            users: {
-                allowUserRegistration: true,
-                allowSocialLogin: false,
-                defaultUserRole: 'user',
-                requireOrganizerApproval: true,
-                maxEventsPerOrganizer: 0, // 0 = unlimited
-                maxAttendeesPerEvent: 0, // 0 = unlimited
-                organizerCommissionRate: 5, // percentage
-                adminEmails: ['admin@entradasmelilla.com']
-            }
-        };
+        // Mask sensitive values
+        const maskedSettings = JSON.parse(JSON.stringify(settings));
+        
+        // Mask sensitive values in payment settings
+        if (maskedSettings.payment && maskedSettings.payment.stripeSecretKey) {
+            maskedSettings.payment.stripeSecretKey = maskedSettings.payment.stripeSecretKey.replace(/./g, '*');
+        }
+        if (maskedSettings.payment && maskedSettings.payment.paypalClientSecret) {
+            maskedSettings.payment.paypalClientSecret = maskedSettings.payment.paypalClientSecret.replace(/./g, '*');
+        }
+        
+        // Mask sensitive values in email settings
+        if (maskedSettings.email && maskedSettings.email.smtpSettings && maskedSettings.email.smtpSettings.auth) {
+            maskedSettings.email.smtpSettings.auth.pass = maskedSettings.email.smtpSettings.auth.pass ? '**********' : '';
+        }
+        if (maskedSettings.email && maskedSettings.email.apiSettings) {
+            maskedSettings.email.apiSettings.apiKey = maskedSettings.email.apiSettings.apiKey ? '**********' : '';
+        }
         
         return res.status(200).json(new ApiResponse(
             200,
-            settings,
+            maskedSettings,
             'System settings retrieved successfully'
         ));
     } catch (error) {
@@ -994,20 +920,313 @@ export const getSystemSettings = asyncHandler(async (req, res) => {
  * @access  Private (Admin only)
  */
 export const updateSystemSettings = asyncHandler(async (req, res) => {
-    const settings = req.body;
+    const updatedSettings = req.body;
     
     try {
-        // In a real application, you would validate and save to a Settings model
-        // For this implementation, we'll simply return success
+        // Validate the data
+        if (!updatedSettings) {
+            throw new ApiError(400, 'Settings data is required');
+        }
+        
+        // Get current settings
+        const currentSettings = await SystemSettings.getSettings();
+        
+        // Merge with new settings
+        // We merge section by section to avoid overwriting entire sections
+        if (updatedSettings.general) {
+            currentSettings.general = { ...currentSettings.general, ...updatedSettings.general };
+        }
+        
+        if (updatedSettings.payment) {
+            // Handle sensitive data - don't overwrite if masked or empty
+            if (updatedSettings.payment.stripeSecretKey && updatedSettings.payment.stripeSecretKey.includes('*')) {
+                delete updatedSettings.payment.stripeSecretKey;
+            }
+            if (updatedSettings.payment.paypalClientSecret && updatedSettings.payment.paypalClientSecret.includes('*')) {
+                delete updatedSettings.payment.paypalClientSecret;
+            }
+            
+            currentSettings.payment = { ...currentSettings.payment, ...updatedSettings.payment };
+        }
+        
+        // Email settings handled by a separate endpoint
+        
+        if (updatedSettings.events) {
+            currentSettings.events = { ...currentSettings.events, ...updatedSettings.events };
+        }
+        
+        if (updatedSettings.security) {
+            currentSettings.security = { ...currentSettings.security, ...updatedSettings.security };
+        }
+        
+        if (updatedSettings.privacy) {
+            currentSettings.privacy = { ...currentSettings.privacy, ...updatedSettings.privacy };
+        }
+        
+        if (updatedSettings.users) {
+            currentSettings.users = { ...currentSettings.users, ...updatedSettings.users };
+        }
+        
+        // Save to database
+        await currentSettings.save();
+        
+        // Mask sensitive values for response
+        const maskedSettings = JSON.parse(JSON.stringify(currentSettings));
+        
+        // Mask sensitive values in payment settings
+        if (maskedSettings.payment && maskedSettings.payment.stripeSecretKey) {
+            maskedSettings.payment.stripeSecretKey = maskedSettings.payment.stripeSecretKey.replace(/./g, '*');
+        }
+        if (maskedSettings.payment && maskedSettings.payment.paypalClientSecret) {
+            maskedSettings.payment.paypalClientSecret = maskedSettings.payment.paypalClientSecret.replace(/./g, '*');
+        }
+        
+        // Mask sensitive values in email settings
+        if (maskedSettings.email && maskedSettings.email.smtpSettings && maskedSettings.email.smtpSettings.auth) {
+            maskedSettings.email.smtpSettings.auth.pass = maskedSettings.email.smtpSettings.auth.pass ? '**********' : '';
+        }
+        if (maskedSettings.email && maskedSettings.email.apiSettings) {
+            maskedSettings.email.apiSettings.apiKey = maskedSettings.email.apiSettings.apiKey ? '**********' : '';
+        }
         
         return res.status(200).json(new ApiResponse(
             200,
-            settings,
+            maskedSettings,
             'System settings updated successfully'
         ));
     } catch (error) {
         console.error('Error updating system settings:', error);
-        throw new ApiError(500, 'Failed to update system settings');
+        throw new ApiError(500, 'Failed to update system settings: ' + error.message);
+    }
+});
+
+/**
+ * @desc    Get email settings
+ * @route   GET /api/v1/admin/settings/email
+ * @access  Private (Admin only)
+ */
+export const getEmailSettings = asyncHandler(async (req, res) => {
+    try {
+        // Get settings from the database, or create default if needed
+        const settings = await SystemSettings.getSettings();
+        
+        // Extract email settings
+        const emailSettings = settings.email;
+        
+        // Mask sensitive values
+        if (emailSettings.smtpSettings && emailSettings.smtpSettings.auth) {
+            emailSettings.smtpSettings.auth.pass = emailSettings.smtpSettings.auth.pass ? '**********' : '';
+        }
+        if (emailSettings.apiSettings) {
+            emailSettings.apiSettings.apiKey = emailSettings.apiSettings.apiKey ? '**********' : '';
+        }
+        
+        return res.status(200).json(new ApiResponse(
+            200,
+            emailSettings,
+            'Email settings retrieved successfully'
+        ));
+    } catch (error) {
+        console.error('Error fetching email settings:', error);
+        throw new ApiError(500, 'Failed to retrieve email settings');
+    }
+});
+
+/**
+ * @desc    Update email settings
+ * @route   PUT /api/v1/admin/settings/email
+ * @access  Private (Admin only)
+ */
+export const updateEmailSettings = asyncHandler(async (req, res) => {
+    const emailData = req.body;
+    
+    try {
+        // Validate the data
+        if (!emailData) {
+            throw new ApiError(400, 'Email settings data is required');
+        }
+        
+        // Get current settings
+        const settings = await SystemSettings.getSettings();
+        
+        // Handle sensitive data - don't overwrite if masked or empty
+        if (emailData.smtpSettings && emailData.smtpSettings.auth) {
+            if (emailData.smtpSettings.auth.pass && emailData.smtpSettings.auth.pass.includes('*')) {
+                emailData.smtpSettings.auth.pass = settings.email.smtpSettings.auth.pass;
+            }
+        }
+        
+        if (emailData.apiSettings) {
+            if (emailData.apiSettings.apiKey && emailData.apiSettings.apiKey.includes('*')) {
+                emailData.apiSettings.apiKey = settings.email.apiSettings.apiKey;
+            }
+        }
+        
+        // Update email settings
+        settings.email = { ...settings.email, ...emailData };
+        
+        // If templates are not provided, keep existing ones
+        if (!emailData.emailTemplates) {
+            settings.email.emailTemplates = settings.email.emailTemplates;
+        }
+        
+        // Save to database
+        await settings.save();
+        
+        // Update environment variables for immediate effect
+        if (settings.email.useApi && settings.email.apiSettings.apiKey) {
+            process.env.USE_BREVO_API = 'true';
+            process.env.BREVO_API_KEY = settings.email.apiSettings.apiKey;
+        } else {
+            process.env.USE_BREVO_API = 'false';
+            process.env.BREVO_SMTP_HOST = settings.email.smtpSettings.host;
+            process.env.BREVO_SMTP_PORT = settings.email.smtpSettings.port.toString();
+            process.env.BREVO_SMTP_USER = settings.email.smtpSettings.auth.user;
+            process.env.BREVO_SMTP_PASSWORD = settings.email.smtpSettings.auth.pass;
+        }
+        
+        process.env.EMAIL_SENDER_NAME = settings.email.fromName;
+        process.env.EMAIL_FROM = settings.email.fromEmail;
+        
+        // Mask sensitive values for response
+        const responseData = JSON.parse(JSON.stringify(settings.email));
+        
+        if (responseData.smtpSettings && responseData.smtpSettings.auth) {
+            responseData.smtpSettings.auth.pass = responseData.smtpSettings.auth.pass ? '**********' : '';
+        }
+        if (responseData.apiSettings) {
+            responseData.apiSettings.apiKey = responseData.apiSettings.apiKey ? '**********' : '';
+        }
+        
+        return res.status(200).json(new ApiResponse(
+            200,
+            responseData,
+            'Email settings updated successfully'
+        ));
+    } catch (error) {
+        console.error('Error updating email settings:', error);
+        throw new ApiError(500, 'Failed to update email settings: ' + error.message);
+    }
+});
+
+/**
+ * @desc    Send test email
+ * @route   POST /api/v1/admin/send-test-email
+ * @access  Private (Admin only)
+ */
+export const sendTestEmail = asyncHandler(async (req, res) => {
+    const { to, subject, text, provider, smtpSettings, apiSettings, fromName, fromEmail, useApi } = req.body;
+    
+    try {
+        // Validate required fields
+        if (!to) {
+            throw new ApiError(400, 'Recipient email address is required');
+        }
+        
+        // Basic email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(to)) {
+            throw new ApiError(400, 'Invalid email address format');
+        }
+        
+        // Backup current environment variables
+        const envBackup = {
+            USE_BREVO_API: process.env.USE_BREVO_API,
+            BREVO_API_KEY: process.env.BREVO_API_KEY,
+            BREVO_SMTP_HOST: process.env.BREVO_SMTP_HOST,
+            BREVO_SMTP_PORT: process.env.BREVO_SMTP_PORT,
+            BREVO_SMTP_USER: process.env.BREVO_SMTP_USER,
+            BREVO_SMTP_PASSWORD: process.env.BREVO_SMTP_PASSWORD,
+            EMAIL_SENDER_NAME: process.env.EMAIL_SENDER_NAME,
+            EMAIL_FROM: process.env.EMAIL_FROM
+        };
+        
+        try {
+            // Temporarily override environment variables with test values
+            if (useApi) {
+                process.env.USE_BREVO_API = 'true';
+                if (apiSettings && apiSettings.apiKey && !apiSettings.apiKey.includes('*')) {
+                    process.env.BREVO_API_KEY = apiSettings.apiKey;
+                }
+            } else {
+                process.env.USE_BREVO_API = 'false';
+                if (smtpSettings) {
+                    if (smtpSettings.host) process.env.BREVO_SMTP_HOST = smtpSettings.host;
+                    if (smtpSettings.port) process.env.BREVO_SMTP_PORT = smtpSettings.port.toString();
+                    if (smtpSettings.auth) {
+                        if (smtpSettings.auth.user) process.env.BREVO_SMTP_USER = smtpSettings.auth.user;
+                        if (smtpSettings.auth.pass && !smtpSettings.auth.pass.includes('*')) {
+                            process.env.BREVO_SMTP_PASSWORD = smtpSettings.auth.pass;
+                        }
+                    }
+                }
+            }
+            
+            // Set sender information if provided
+            if (fromName) process.env.EMAIL_SENDER_NAME = fromName;
+            if (fromEmail) process.env.EMAIL_FROM = fromEmail;
+            
+            // Prepare HTML content with basic styling
+            const htmlContent = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <h1 style="color: #333;">Correo de Prueba</h1>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <p>Este es un correo de prueba enviado desde la configuración de EntradasMelilla.</p>
+                        <p>${text || 'La configuración del correo electrónico funciona correctamente.'}</p>
+                        
+                        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                            <h3 style="margin-top: 0; color: #333;">Información de la prueba:</h3>
+                            <p><strong>Método:</strong> ${useApi ? 'API' : 'SMTP'}</p>
+                            <p><strong>Proveedor:</strong> ${provider || (useApi ? apiSettings?.provider : 'SMTP')}</p>
+                            <p><strong>Desde:</strong> ${fromName} &lt;${fromEmail}&gt;</p>
+                            <p><strong>Para:</strong> ${to}</p>
+                            <p><strong>Fecha y hora:</strong> ${new Date().toLocaleString()}</p>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #888; text-align: center;">
+                        <p>Este es un correo automático de prueba, por favor no respondas a este mensaje.</p>
+                        <p>© ${new Date().getFullYear()} EntradasMelilla. Todos los derechos reservados.</p>
+                    </div>
+                </div>
+            `;
+            
+            // Send test email
+            const emailResult = await emailService.sendMail({
+                to,
+                subject: subject || 'Correo de prueba de EntradasMelilla',
+                html: htmlContent,
+                text: text || 'La configuración del correo electrónico funciona correctamente.'
+            });
+            
+            // Restore original environment variables
+            Object.keys(envBackup).forEach(key => {
+                process.env[key] = envBackup[key];
+            });
+            
+            if (emailResult.success) {
+                return res.status(200).json(new ApiResponse(
+                    200,
+                    { messageId: emailResult.messageId },
+                    'Test email sent successfully'
+                ));
+            } else {
+                throw new ApiError(500, `Failed to send test email: ${emailResult.error}`);
+            }
+        } catch (emailError) {
+            // Restore original environment variables in case of error
+            Object.keys(envBackup).forEach(key => {
+                process.env[key] = envBackup[key];
+            });
+            
+            throw emailError;
+        }
+    } catch (error) {
+        console.error('Error sending test email:', error);
+        throw new ApiError(500, `Failed to send test email: ${error.message}`);
     }
 });
 
