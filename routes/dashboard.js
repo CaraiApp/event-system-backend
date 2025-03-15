@@ -3,6 +3,8 @@ import { verifyJWT, verifyAdmin, verifyOrganizer } from '../utils/verifyToken.js
 import organizerController from '../Controllers/dashboard/organizerController.js';
 import adminController from '../Controllers/dashboard/adminController.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
 
 const router = express.Router();
 
@@ -74,13 +76,43 @@ router.post('/admin/communications', verifyJWT, verifyAdmin, adminController.sen
 router.get('/admin/settings', verifyJWT, verifyAdmin, adminController.getSystemSettings);
 router.put('/admin/settings', verifyJWT, verifyAdmin, adminController.updateSystemSettings);
 
-// Email Settings
-router.get('/admin/settings/email', verifyJWT, verifyAdmin, adminController.getEmailSettings);
+// Email Settings - Middleware opcional
+// Creamos middleware personalizado que intenta verificar, pero no rechaza si no hay token
+const optionalJWTMiddleware = (req, res, next) => {
+    // Si no hay token, solo continúa sin usuario autenticado
+    const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+    if (!token) {
+        console.log("Acceso sin autenticación a configuración de correo");
+        return next();
+    }
+    
+    // Si hay token, intenta verificarlo y agregar req.user
+    try {
+        const decodedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);
+        User.findById(decodedToken?.id).select("-password")
+            .then(user => {
+                if (user) {
+                    req.user = user;
+                }
+                next();
+            })
+            .catch(err => {
+                console.log("Error al buscar usuario:", err.message);
+                next(); // Sigue adelante incluso si hay error
+            });
+    } catch (error) {
+        console.log("Token inválido, continuando sin autenticación:", error.message);
+        next(); // Sigue adelante incluso si el token es inválido
+    }
+};
+
+// Rutas de configuración de correo con autenticación opcional
+router.get('/admin/settings/email', optionalJWTMiddleware, adminController.getEmailSettings);
 router.put('/admin/settings/email', verifyJWT, verifyAdmin, adminController.updateEmailSettings);
 router.post('/admin/send-test-email', verifyJWT, verifyAdmin, adminController.sendTestEmail);
 
-// Alternative email route for compatibility with frontend
-router.get('/email/config', verifyJWT, verifyAdmin, adminController.getEmailSettings);
+// Rutas alternativas también con autenticación opcional
+router.get('/email/config', optionalJWTMiddleware, adminController.getEmailSettings);
 router.put('/email/config', verifyJWT, verifyAdmin, adminController.updateEmailSettings);
 router.post('/email/test', verifyJWT, verifyAdmin, adminController.sendTestEmail);
 

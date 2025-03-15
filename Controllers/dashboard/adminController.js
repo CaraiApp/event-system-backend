@@ -1005,30 +1005,120 @@ export const updateSystemSettings = asyncHandler(async (req, res) => {
  * @route   GET /api/v1/admin/settings/email
  * @access  Private (Admin only)
  */
+/**
+ * Get public and non-sensitive email configuration
+ * This is a helper function used both for authenticated and public access
+ */
+const getPublicEmailConfig = async () => {
+    // Get settings from the database, or create default if needed
+    const settings = await SystemSettings.getSettings();
+    
+    // Create a minimal public version with only non-sensitive data
+    const publicEmailConfig = {
+        fromName: settings.email?.fromName || process.env.EMAIL_SENDER_NAME || 'EntradasMelilla',
+        fromEmail: settings.email?.fromEmail || process.env.EMAIL_FROM || 'info@entradasmelilla.com',
+        emailProvider: settings.email?.emailProvider || 'smtp',
+        // No templates, credentials, or sensitive information here
+    };
+    
+    return publicEmailConfig;
+};
+
+/**
+ * @desc    Get email settings
+ * @route   GET /api/v1/admin/settings/email
+ * @access  Mixed (Public minimal config, Admin full config)
+ */
 export const getEmailSettings = asyncHandler(async (req, res) => {
     try {
+        console.log("Accediendo a configuración de correo electrónico");
+        
+        // Determinar si es una solicitud autenticada (admin)
+        const isAdmin = req.user && req.user.role === 'admin';
+        console.log("¿Solicitud autenticada como admin?", isAdmin);
+        
+        // Si no es admin, devolver solo la configuración pública
+        if (!isAdmin) {
+            console.log("Solicitud no autenticada, enviando configuración pública limitada");
+            const publicConfig = await getPublicEmailConfig();
+            
+            return res.status(200).json(new ApiResponse(
+                200,
+                publicConfig,
+                'Public email configuration retrieved successfully'
+            ));
+        }
+        
+        // A partir de aquí, solo admin tiene acceso
+        
         // Get settings from the database, or create default if needed
         const settings = await SystemSettings.getSettings();
         
+        // Log to confirm we got the settings
+        console.log("Configuración del sistema obtenida:", settings ? "OK" : "No encontrada");
+        
         // Extract email settings
-        const emailSettings = settings.email;
+        const emailSettings = settings.email || {};
+        
+        // Si no hay configuración de correo, devolver valores por defecto
+        if (!emailSettings || Object.keys(emailSettings).length === 0) {
+            console.log("No se encontró configuración de correo, usando valores por defecto");
+            
+            const defaultEmailSettings = {
+                emailProvider: 'smtp',
+                useApi: false,
+                smtpSettings: {
+                    host: process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com',
+                    port: parseInt(process.env.BREVO_SMTP_PORT || '587'),
+                    secure: false,
+                    auth: {
+                        user: process.env.BREVO_SMTP_USER || '',
+                        pass: '' // Enmascarado por seguridad
+                    }
+                },
+                apiSettings: {
+                    provider: 'brevo',
+                    apiKey: '' // Enmascarado por seguridad
+                },
+                fromName: process.env.EMAIL_SENDER_NAME || 'EntradasMelilla',
+                fromEmail: process.env.EMAIL_FROM || 'info@entradasmelilla.com',
+                emailTemplates: [
+                    { id: 'welcome', name: 'Bienvenida', subject: 'Bienvenido a EntradasMelilla' },
+                    { id: 'booking_confirmation', name: 'Confirmación de Reserva', subject: 'Confirmación de tu reserva' },
+                    { id: 'booking_cancelled', name: 'Reserva Cancelada', subject: 'Tu reserva ha sido cancelada' },
+                    { id: 'payment_confirmation', name: 'Confirmación de Pago', subject: 'Confirmación de pago' },
+                    { id: 'event_reminder', name: 'Recordatorio de Evento', subject: 'Recordatorio: Tu evento se acerca' },
+                    { id: 'verification_email', name: 'Verificación de Email', subject: 'Verifica tu dirección de correo electrónico' }
+                ]
+            };
+            
+            return res.status(200).json(new ApiResponse(
+                200,
+                defaultEmailSettings,
+                'Default email settings retrieved successfully'
+            ));
+        }
         
         // Mask sensitive values
-        if (emailSettings.smtpSettings && emailSettings.smtpSettings.auth) {
-            emailSettings.smtpSettings.auth.pass = emailSettings.smtpSettings.auth.pass ? '**********' : '';
+        let maskedSettings = JSON.parse(JSON.stringify(emailSettings));
+        
+        if (maskedSettings.smtpSettings && maskedSettings.smtpSettings.auth) {
+            maskedSettings.smtpSettings.auth.pass = maskedSettings.smtpSettings.auth.pass ? '**********' : '';
         }
-        if (emailSettings.apiSettings) {
-            emailSettings.apiSettings.apiKey = emailSettings.apiSettings.apiKey ? '**********' : '';
+        if (maskedSettings.apiSettings) {
+            maskedSettings.apiSettings.apiKey = maskedSettings.apiSettings.apiKey ? '**********' : '';
         }
+        
+        console.log("Devolviendo configuración de correo completa para admin");
         
         return res.status(200).json(new ApiResponse(
             200,
-            emailSettings,
+            maskedSettings,
             'Email settings retrieved successfully'
         ));
     } catch (error) {
         console.error('Error fetching email settings:', error);
-        throw new ApiError(500, 'Failed to retrieve email settings');
+        throw new ApiError(500, 'Failed to retrieve email settings: ' + error.message);
     }
 });
 
