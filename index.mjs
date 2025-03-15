@@ -522,14 +522,51 @@ app.use('/api/v1/timeslot', timeslotRoute)
 app.use('/api/v1/templates', templateRoute)
 app.use('/api/templates', templateRoute) // Ruta adicional para compatibilidad con el frontend
 
-// Ruta alternativa para UI-config que REDIRIGE a la ruta oficial protegida
+// Ruta alternativa para UI-config
 app.get('/api/templates/ui-config', (req, res) => {
-    // Esta ruta alternativa ahora SIEMPRE redirige a la ruta oficial que está protegida
-    const redirectUrl = `/api/v1/dashboard/ui-config${req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`;
-    console.log(`Redirigiendo solicitud a ruta protegida: ${redirectUrl}`);
+    // Obtener la ruta de la consulta
+    const route = req.query.route || '';
+    let uiConfig = { hideHeader: false, hideFooter: false };
     
-    // Redirigimos manteniendo parámetros y cabeceras
-    return res.redirect(307, redirectUrl); // 307 preserva el método HTTP
+    // Generar la misma configuración que la ruta principal
+    if (route.includes('/admin') || route.includes('/organizer')) {
+        uiConfig = {
+            hideHeader: true,
+            hideFooter: true,
+            isDashboard: true,
+            dashboardType: route.includes('/admin') ? 'admin' : 'organizer'
+        };
+        
+        // Agregamos información adicional útil para dashboards
+        if (route.includes('/admin')) {
+            uiConfig.navItems = [
+                { path: '/admin/overview', label: 'Dashboard', icon: 'dashboard' },
+                { path: '/admin/users', label: 'Usuarios', icon: 'people' },
+                { path: '/admin/organizers', label: 'Organizadores', icon: 'business' },
+                { path: '/admin/events', label: 'Eventos', icon: 'event' },
+                { path: '/admin/categories', label: 'Categorías', icon: 'category' },
+                { path: '/admin/reports', label: 'Informes', icon: 'bar_chart' },
+                { path: '/admin/settings', label: 'Configuración', icon: 'settings' }
+            ];
+        } else if (route.includes('/organizer')) {
+            uiConfig.navItems = [
+                { path: '/organizer/overview', label: 'Dashboard', icon: 'dashboard' },
+                { path: '/organizer/events', label: 'Mis Eventos', icon: 'event' },
+                { path: '/organizer/sales', label: 'Ventas', icon: 'payments' },
+                { path: '/organizer/attendees', label: 'Asistentes', icon: 'people' },
+                { path: '/organizer/settings', label: 'Configuración', icon: 'settings' }
+            ];
+        }
+    }
+    
+    console.log(`[Ruta alternativa UI] Enviando configuración para ruta: ${route}`);
+    
+    // Devolver respuesta con el mismo formato que la API oficial
+    return res.status(200).json({
+        success: true,
+        data: uiConfig,
+        message: 'UI configuration retrieved successfully'
+    });
 });
 
 //setting route for Categories

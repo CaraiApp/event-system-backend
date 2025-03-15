@@ -884,35 +884,95 @@ export const getSystemSettings = asyncHandler(async (req, res) => {
         console.log("Accediendo a configuración del sistema");
         console.log("Usuario autenticado:", req.user ? req.user.username : "Sin usuario");
         
-        // Admin ya está verificado por middleware, solo los administradores llegan aquí
-        
-        // Get settings from the database, or create default if needed
+        // Get settings from database
         const settings = await SystemSettings.getSettings();
+        console.log("Configuración del sistema obtenida:", settings ? "OK" : "No encontrada");
         
-        // Mask sensitive values
-        const maskedSettings = JSON.parse(JSON.stringify(settings));
+        // Create a flat structure similar to what the frontend expects
+        const flatSettings = {
+            general: {
+                siteName: settings.general?.siteName || 'EntradasMelilla',
+                siteDescription: settings.general?.siteDescription || 'Compra tus entradas para los mejores eventos de Melilla',
+                contactEmail: settings.general?.contactEmail || 'info@entradasmelilla.com',
+                supportPhone: settings.general?.supportPhone || '+34 612 345 678',
+                logoUrl: settings.general?.logoUrl || '',
+                faviconUrl: settings.general?.faviconUrl || '',
+                defaultLanguage: settings.general?.defaultLanguage || 'es',
+                timeZone: settings.general?.timeZone || 'Europe/Madrid',
+                maintenanceMode: settings.general?.maintenanceMode || false,
+                maintenanceMessage: settings.general?.maintenanceMessage || 'Estamos realizando tareas de mantenimiento. Por favor, vuelve más tarde.'
+            },
+            payment: {
+                currency: settings.payment?.currency || 'EUR',
+                currencySymbol: settings.payment?.currencySymbol || '€',
+                stripeEnabled: settings.payment?.stripeEnabled || true,
+                stripePublicKey: settings.payment?.stripePublicKey || 'pk_test_********************************',
+                stripeSecretKey: settings.payment?.stripeSecretKey ? '********************************' : '',
+                paypalEnabled: settings.payment?.paypalEnabled || false,
+                paypalClientId: settings.payment?.paypalClientId || '',
+                paypalClientSecret: settings.payment?.paypalClientSecret ? '********************************' : '',
+                bankTransferEnabled: settings.payment?.bankTransferEnabled || true,
+                bankTransferInstructions: settings.payment?.bankTransferInstructions || 'Realiza la transferencia a la siguiente cuenta bancaria...',
+                commissionRate: settings.payment?.commissionRate || 5,
+                commissionType: settings.payment?.commissionType || 'percentage',
+                commissionFixed: settings.payment?.commissionFixed || 0
+            },
+            events: {
+                maxTicketsPerPurchase: settings.events?.maxTicketsPerPurchase || 10,
+                minTicketsPerPurchase: settings.events?.minTicketsPerPurchase || 1,
+                allowGuestCheckout: settings.events?.allowGuestCheckout !== undefined ? settings.events.allowGuestCheckout : true,
+                requirePhoneNumber: settings.events?.requirePhoneNumber !== undefined ? settings.events.requirePhoneNumber : true,
+                requireAddress: settings.events?.requireAddress !== undefined ? settings.events.requireAddress : false,
+                enableWaitlist: settings.events?.enableWaitlist !== undefined ? settings.events.enableWaitlist : true,
+                enableRefunds: settings.events?.enableRefunds !== undefined ? settings.events.enableRefunds : true,
+                refundPeriodDays: settings.events?.refundPeriodDays || 7,
+                enablePartialRefunds: settings.events?.enablePartialRefunds !== undefined ? settings.events.enablePartialRefunds : false,
+                defaultEventDuration: settings.events?.defaultEventDuration || 120,
+                defaultTicketTypes: settings.events?.defaultTicketTypes || [
+                    { id: 'standard', name: 'Estándar', color: '#2196F3' },
+                    { id: 'vip', name: 'VIP', color: '#F44336' }
+                ]
+            },
+            security: {
+                requireEmailVerification: settings.security?.requireEmailVerification !== undefined ? settings.security.requireEmailVerification : true,
+                twoFactorAuthEnabled: settings.security?.twoFactorAuthEnabled !== undefined ? settings.security.twoFactorAuthEnabled : false,
+                passwordMinLength: settings.security?.passwordMinLength || 8,
+                passwordRequireSpecialChars: settings.security?.passwordRequireSpecialChars !== undefined ? settings.security.passwordRequireSpecialChars : true,
+                passwordRequireNumbers: settings.security?.passwordRequireNumbers !== undefined ? settings.security.passwordRequireNumbers : true,
+                passwordRequireUppercase: settings.security?.passwordRequireUppercase !== undefined ? settings.security.passwordRequireUppercase : true,
+                accountLockoutAttempts: settings.security?.accountLockoutAttempts || 5,
+                sessionTimeout: settings.security?.sessionTimeout || 60,
+                jwtExpirationTime: settings.security?.jwtExpirationTime || 24,
+                allowedOrigins: settings.security?.allowedOrigins || ['https://entradasmelilla.com', 'https://admin.entradasmelilla.com']
+            },
+            privacy: {
+                privacyPolicyUrl: settings.privacy?.privacyPolicyUrl || 'https://entradasmelilla.com/privacy',
+                termsOfServiceUrl: settings.privacy?.termsOfServiceUrl || 'https://entradasmelilla.com/terms',
+                cookiePolicyUrl: settings.privacy?.cookiePolicyUrl || 'https://entradasmelilla.com/cookies',
+                dataDeletionPeriod: settings.privacy?.dataDeletionPeriod || 365,
+                gdprCompliant: settings.privacy?.gdprCompliant !== undefined ? settings.privacy.gdprCompliant : true,
+                cookieConsentRequired: settings.privacy?.cookieConsentRequired !== undefined ? settings.privacy.cookieConsentRequired : true,
+                analyticsEnabled: settings.privacy?.analyticsEnabled !== undefined ? settings.privacy.analyticsEnabled : true,
+                analyticsProvider: settings.privacy?.analyticsProvider || 'google',
+                analyticsTrackingId: settings.privacy?.analyticsTrackingId || 'G-XXXXXXXXXX'
+            },
+            users: {
+                allowUserRegistration: settings.users?.allowUserRegistration !== undefined ? settings.users.allowUserRegistration : true,
+                allowSocialLogin: settings.users?.allowSocialLogin !== undefined ? settings.users.allowSocialLogin : false,
+                defaultUserRole: settings.users?.defaultUserRole || 'user',
+                requireOrganizerApproval: settings.users?.requireOrganizerApproval !== undefined ? settings.users.requireOrganizerApproval : true,
+                maxEventsPerOrganizer: settings.users?.maxEventsPerOrganizer || 0,
+                maxAttendeesPerEvent: settings.users?.maxAttendeesPerEvent || 0,
+                organizerCommissionRate: settings.users?.organizerCommissionRate || 5,
+                adminEmails: settings.users?.adminEmails || ['admin@entradasmelilla.com']
+            }
+        };
         
-        // Mask sensitive values in payment settings
-        if (maskedSettings.payment && maskedSettings.payment.stripeSecretKey) {
-            maskedSettings.payment.stripeSecretKey = maskedSettings.payment.stripeSecretKey.replace(/./g, '*');
-        }
-        if (maskedSettings.payment && maskedSettings.payment.paypalClientSecret) {
-            maskedSettings.payment.paypalClientSecret = maskedSettings.payment.paypalClientSecret.replace(/./g, '*');
-        }
-        
-        // Mask sensitive values in email settings
-        if (maskedSettings.email && maskedSettings.email.smtpSettings && maskedSettings.email.smtpSettings.auth) {
-            maskedSettings.email.smtpSettings.auth.pass = maskedSettings.email.smtpSettings.auth.pass ? '**********' : '';
-        }
-        if (maskedSettings.email && maskedSettings.email.apiSettings) {
-            maskedSettings.email.apiSettings.apiKey = maskedSettings.email.apiSettings.apiKey ? '**********' : '';
-        }
-        
-        console.log("Enviando configuración del sistema a admin:", req.user.username);
+        console.log("Enviando configuración del sistema");
         
         return res.status(200).json(new ApiResponse(
             200,
-            maskedSettings,
+            flatSettings,
             'System settings retrieved successfully'
         ));
     } catch (error) {
@@ -1008,6 +1068,33 @@ export const updateSystemSettings = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Función de ayuda para convertir configuraciones del backend a formato del frontend
+ */
+const convertEmailConfigForFrontend = (emailSettings) => {
+    // Convertir del formato de almacenamiento al formato que espera el frontend
+    return {
+        emailProvider: emailSettings.emailProvider || 'smtp',
+        useApi: emailSettings.useApi || false,
+        smtpHost: emailSettings.smtpSettings?.host || process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com',
+        smtpPort: emailSettings.smtpSettings?.port || parseInt(process.env.BREVO_SMTP_PORT || '587'),
+        smtpUser: emailSettings.smtpSettings?.auth?.user || process.env.BREVO_SMTP_USER || '',
+        smtpPassword: emailSettings.smtpSettings?.auth?.pass ? '**********' : '',
+        smtpEncryption: emailSettings.smtpSettings?.secure ? 'ssl' : 'tls',
+        fromName: emailSettings.fromName || process.env.EMAIL_SENDER_NAME || 'EntradasMelilla',
+        fromEmail: emailSettings.fromEmail || process.env.EMAIL_FROM || 'info@entradasmelilla.com',
+        apiKey: emailSettings.apiSettings?.apiKey ? '**********' : '',
+        emailTemplates: emailSettings.emailTemplates || [
+            { id: 'welcome', name: 'Bienvenida', subject: 'Bienvenido a EntradasMelilla' },
+            { id: 'booking_confirmation', name: 'Confirmación de Reserva', subject: 'Confirmación de tu reserva' },
+            { id: 'booking_cancelled', name: 'Reserva Cancelada', subject: 'Tu reserva ha sido cancelada' },
+            { id: 'payment_confirmation', name: 'Confirmación de Pago', subject: 'Confirmación de pago' },
+            { id: 'event_reminder', name: 'Recordatorio de Evento', subject: 'Recordatorio: Tu evento se acerca' },
+            { id: 'verification_email', name: 'Verificación de Email', subject: 'Verifica tu dirección de correo electrónico' }
+        ]
+    };
+};
+
+/**
  * @desc    Get email settings
  * @route   GET /api/v1/admin/settings/email
  * @access  Private (Admin only)
@@ -1017,18 +1104,14 @@ export const getEmailSettings = asyncHandler(async (req, res) => {
         console.log("Accediendo a configuración de correo electrónico");
         console.log("Usuario autenticado:", req.user ? req.user.username : "Sin usuario");
         
-        // Admin ya está verificado por middleware, solo los administradores llegan aquí
-        
         // Get settings from the database, or create default if needed
         const settings = await SystemSettings.getSettings();
-        
-        // Log to confirm we got the settings
         console.log("Configuración del sistema obtenida:", settings ? "OK" : "No encontrada");
         
         // Extract email settings
         const emailSettings = settings.email || {};
         
-        // Si no hay configuración de correo, devolver valores por defecto
+        // Si no hay configuración de correo, usar valores por defecto
         if (!emailSettings || Object.keys(emailSettings).length === 0) {
             console.log("No se encontró configuración de correo, usando valores por defecto");
             
@@ -1041,12 +1124,12 @@ export const getEmailSettings = asyncHandler(async (req, res) => {
                     secure: false,
                     auth: {
                         user: process.env.BREVO_SMTP_USER || '',
-                        pass: '' // Enmascarado por seguridad
+                        pass: ''
                     }
                 },
                 apiSettings: {
                     provider: 'brevo',
-                    apiKey: '' // Enmascarado por seguridad
+                    apiKey: ''
                 },
                 fromName: process.env.EMAIL_SENDER_NAME || 'EntradasMelilla',
                 fromEmail: process.env.EMAIL_FROM || 'info@entradasmelilla.com',
@@ -1060,28 +1143,24 @@ export const getEmailSettings = asyncHandler(async (req, res) => {
                 ]
             };
             
+            // Convertir al formato que espera el frontend
+            const frontendFormat = convertEmailConfigForFrontend(defaultEmailSettings);
+            
             return res.status(200).json(new ApiResponse(
                 200,
-                defaultEmailSettings,
+                frontendFormat,
                 'Default email settings retrieved successfully'
             ));
         }
         
-        // Mask sensitive values
-        let maskedSettings = JSON.parse(JSON.stringify(emailSettings));
+        // Convertir al formato que espera el frontend
+        const frontendFormat = convertEmailConfigForFrontend(emailSettings);
         
-        if (maskedSettings.smtpSettings && maskedSettings.smtpSettings.auth) {
-            maskedSettings.smtpSettings.auth.pass = maskedSettings.smtpSettings.auth.pass ? '**********' : '';
-        }
-        if (maskedSettings.apiSettings) {
-            maskedSettings.apiSettings.apiKey = maskedSettings.apiSettings.apiKey ? '**********' : '';
-        }
-        
-        console.log("Devolviendo configuración de correo a admin:", req.user.username);
+        console.log("Devolviendo configuración de correo:", frontendFormat.emailProvider);
         
         return res.status(200).json(new ApiResponse(
             200,
-            maskedSettings,
+            frontendFormat,
             'Email settings retrieved successfully'
         ));
     } catch (error) {
@@ -1089,6 +1168,45 @@ export const getEmailSettings = asyncHandler(async (req, res) => {
         throw new ApiError(500, 'Failed to retrieve email settings: ' + error.message);
     }
 });
+
+/**
+ * Convertir formato del frontend al formato del backend para email
+ */
+const convertEmailConfigFromFrontend = (frontendConfig, currentSettings) => {
+    // Convertir del formato del frontend al formato de almacenamiento
+    const backendConfig = {
+        emailProvider: frontendConfig.emailProvider || 'smtp',
+        useApi: frontendConfig.useApi || frontendConfig.emailProvider !== 'smtp',
+        smtpSettings: {
+            host: frontendConfig.smtpHost || process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com',
+            port: parseInt(frontendConfig.smtpPort || process.env.BREVO_SMTP_PORT || '587'),
+            secure: frontendConfig.smtpEncryption === 'ssl',
+            auth: {
+                user: frontendConfig.smtpUser || process.env.BREVO_SMTP_USER || '',
+                // No sobrescribir contraseña si está enmascarada
+                pass: (frontendConfig.smtpPassword && frontendConfig.smtpPassword.includes('*')) 
+                    ? (currentSettings?.email?.smtpSettings?.auth?.pass || '')
+                    : frontendConfig.smtpPassword || ''
+            }
+        },
+        apiSettings: {
+            provider: frontendConfig.emailProvider !== 'smtp' ? frontendConfig.emailProvider : 'brevo',
+            // No sobrescribir apiKey si está enmascarada
+            apiKey: (frontendConfig.apiKey && frontendConfig.apiKey.includes('*'))
+                ? (currentSettings?.email?.apiSettings?.apiKey || '')
+                : frontendConfig.apiKey || ''
+        },
+        fromName: frontendConfig.fromName || process.env.EMAIL_SENDER_NAME || 'EntradasMelilla',
+        fromEmail: frontendConfig.fromEmail || process.env.EMAIL_FROM || 'info@entradasmelilla.com',
+        emailTemplates: frontendConfig.emailTemplates || currentSettings?.email?.emailTemplates || [
+            { id: 'welcome', name: 'Bienvenida', subject: 'Bienvenido a EntradasMelilla' },
+            { id: 'booking_confirmation', name: 'Confirmación de Reserva', subject: 'Confirmación de tu reserva' },
+            { id: 'booking_cancelled', name: 'Reserva Cancelada', subject: 'Tu reserva ha sido cancelada' }
+        ]
+    };
+    
+    return backendConfig;
+};
 
 /**
  * @desc    Update email settings
@@ -1099,6 +1217,8 @@ export const updateEmailSettings = asyncHandler(async (req, res) => {
     const emailData = req.body;
     
     try {
+        console.log("Actualizando configuración de correo electrónico");
+        
         // Validate the data
         if (!emailData) {
             throw new ApiError(400, 'Email settings data is required');
@@ -1107,26 +1227,12 @@ export const updateEmailSettings = asyncHandler(async (req, res) => {
         // Get current settings
         const settings = await SystemSettings.getSettings();
         
-        // Handle sensitive data - don't overwrite if masked or empty
-        if (emailData.smtpSettings && emailData.smtpSettings.auth) {
-            if (emailData.smtpSettings.auth.pass && emailData.smtpSettings.auth.pass.includes('*')) {
-                emailData.smtpSettings.auth.pass = settings.email.smtpSettings.auth.pass;
-            }
-        }
-        
-        if (emailData.apiSettings) {
-            if (emailData.apiSettings.apiKey && emailData.apiSettings.apiKey.includes('*')) {
-                emailData.apiSettings.apiKey = settings.email.apiSettings.apiKey;
-            }
-        }
+        // Convertir del formato del frontend al formato de almacenamiento
+        const backendEmailConfig = convertEmailConfigFromFrontend(emailData, settings);
+        console.log("Configuración convertida:", backendEmailConfig.emailProvider);
         
         // Update email settings
-        settings.email = { ...settings.email, ...emailData };
-        
-        // If templates are not provided, keep existing ones
-        if (!emailData.emailTemplates) {
-            settings.email.emailTemplates = settings.email.emailTemplates;
-        }
+        settings.email = { ...settings.email, ...backendEmailConfig };
         
         // Save to database
         await settings.save();
@@ -1146,19 +1252,14 @@ export const updateEmailSettings = asyncHandler(async (req, res) => {
         process.env.EMAIL_SENDER_NAME = settings.email.fromName;
         process.env.EMAIL_FROM = settings.email.fromEmail;
         
-        // Mask sensitive values for response
-        const responseData = JSON.parse(JSON.stringify(settings.email));
+        // Convertir de nuevo al formato que espera el frontend para la respuesta
+        const frontendFormat = convertEmailConfigForFrontend(settings.email);
         
-        if (responseData.smtpSettings && responseData.smtpSettings.auth) {
-            responseData.smtpSettings.auth.pass = responseData.smtpSettings.auth.pass ? '**********' : '';
-        }
-        if (responseData.apiSettings) {
-            responseData.apiSettings.apiKey = responseData.apiSettings.apiKey ? '**********' : '';
-        }
+        console.log("Configuración de correo actualizada con éxito");
         
         return res.status(200).json(new ApiResponse(
             200,
-            responseData,
+            frontendFormat,
             'Email settings updated successfully'
         ));
     } catch (error) {

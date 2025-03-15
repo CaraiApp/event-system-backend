@@ -13,8 +13,8 @@ const debugJWT = (req, res, next) => {
     next();
 };
 
-// Ruta para proporcionar configuración UI al frontend (PROTEGIDA)
-router.get('/ui-config', debugJWT, verifyJWT, (req, res) => {
+// Ruta pública para proporcionar configuración básica de UI al frontend
+router.get('/ui-config', (req, res) => {
     const route = req.query.route || '';
     let uiConfig = { hideHeader: false, hideFooter: false };
     
